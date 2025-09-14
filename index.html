@@ -107,15 +107,26 @@
     hotspot.addEventListener('click', () => window.open('https://lagreecorestrength.com/', '_blank', 'noopener'));
     try {
       const p = new URLSearchParams(location.search);
-      const hx = parseFloat(p.get('hx')); const hy = parseFloat(p.get('hy')); const hz = parseFloat(p.get('hz'));
-      if (!isNaN(hx) || !isNaN(hy) || !isNaN(hz)) {
+      const units = (p.get('units') || '').toLowerCase(); // 'in' for inches, default meters
+      const IN = 0.0254; // inches→meters
+      const toM = (v) => v * (units === 'in' ? IN : 1);
+      // Support both meters (hx,hy,hz) and inches (hxi,hyi,hzi)
+      let hx = p.get('hx'), hy = p.get('hy'), hz = p.get('hz');
+      const hxi = p.get('hxi'), hyi = p.get('hyi'), hzi = p.get('hzi');
+      // Prefer explicit inch params if provided
+      if (hxi !== null) hx = (parseFloat(hxi) * IN).toString();
+      if (hyi !== null) hy = (parseFloat(hyi) * IN).toString();
+      if (hzi !== null) hz = (parseFloat(hzi) * IN).toString();
+      const fx = parseFloat(hx); const fy = parseFloat(hy); const fz = parseFloat(hz);
+      if (!Number.isNaN(fx) || !Number.isNaN(fy) || !Number.isNaN(fz)) {
         const base = hotspot.dataset.position.split(' ').map(Number);
-        const nx = !isNaN(hx) ? hx : base[0];
-        const ny = !isNaN(hy) ? hy : base[1];
-        const nz = !isNaN(hz) ? hz : base[2];
+        const nx = !Number.isNaN(fx) ? fx : base[0];
+        const ny = !Number.isNaN(fy) ? fy : base[1];
+        const nz = !Number.isNaN(fz) ? fz : base[2];
         hotspot.dataset.position = ;
+        console.log('[hotspot] position set to', hotspot.dataset.position, 'units:', units === 'in' ? 'inches' : 'meters');
       }
-    } catch {}
+    } catch (e) { console.warn('Hotspot param parsing failed', e); }
 
     // Ensure animations start reliably on load (even with a single clip)
     mv.addEventListener('load', () => {
