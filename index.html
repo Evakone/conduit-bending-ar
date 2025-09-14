@@ -36,11 +36,11 @@
     <header><div class="title">Lagree AR — Street Sign (WebXR)</div></header>
 
     <!-- Single model-viewer instance: preview + AR -->
-    <model-viewer id="mv"
+    <model-viewer id="mv" style="touch-action: none;"
       src="./AR-Sandwich-board-v2.plain.glb"
       ios-src="./AR-Sandwich-board-v2.usdz"
       alt="Lagree Street Sign"
-      ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto"
+      ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
       camera-controls
       autoplay animation-name="Animation" animation-crossfade-duration="250"
       environment-image="neutral" xr-environment>
@@ -96,6 +96,57 @@
         mv.animationLoop = 'once'; mv.animationName = names[0]; mv.play();
       }
     });
+
+    // Preview interactions: one‑finger drag to nudge placement, two‑finger pinch to scale model
+    let dragging = false; let lastX = 0; let lastY = 0;
+    let pinchBase = 0; let pinchScaleBase = 1;
+
+    // Helpers to parse/set mv.scale string
+    function getScale() { const s = (mv.scale || '1 1 1').split(' ').map(Number); return s[0] || 1; }
+    function setScale(s) { s = Math.max(0.2, Math.min(2.5, s)); mv.scale = `${s} ${s} ${s}`; scale.value = s; scaleVal.textContent = `${s.toFixed(1)}x`; }
+
+    // Adjust cameraTarget to simulate moving model under the cursor
+    function nudgeTarget(dx, dy) {
+      try {
+        const orbit = mv.getCameraOrbit();
+        const target = mv.getCameraTarget(); // {x,y,z}
+        // Simple mapping: pixels → world units based on orbit radius
+        const r = orbit.radius; const k = r * 0.002; // tune factor
+        mv.cameraTarget = `${(target.x - dx * k).toFixed(3)} ${(target.y + dy * k).toFixed(3)} ${target.z.toFixed(3)}`;
+      } catch {}
+    }
+
+    mv.addEventListener('pointerdown', (e) => {
+      mv.setPointerCapture(e.pointerId);
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+    });
+    mv.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX; const dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+      // One pointer drag: nudge target
+      if (e.getCoalescedEvents) { /* no-op; keep minimal */ }
+      nudgeTarget(dx, dy);
+    });
+    mv.addEventListener('pointerup', (e) => { dragging = false; mv.releasePointerCapture(e.pointerId); });
+
+    // Touch pinch to scale model (preview only)
+    mv.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchBase = Math.hypot(dx, dy); pinchScaleBase = getScale();
+      }
+    }, { passive: true });
+    mv.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && pinchBase > 0) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const s = pinchScaleBase * (dist / pinchBase);
+        setScale(s);
+      }
+    }, { passive: true });
+    mv.addEventListener('touchend', () => { if (pinchBase) { pinchBase = 0; } }, { passive: true });
   </script>
 </body>
 </html>
