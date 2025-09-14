@@ -24,9 +24,10 @@
     label { font-size: .85rem; color: var(--muted); }
     input[type="range"] { width: 220px; height: 6px; background: rgba(255,255,255,.18); border-radius:999px; -webkit-appearance: none; appearance: none; }
     input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; }
-    .ar-cta { position: fixed; right: var(--pad); bottom: var(--pad); z-index: 10; }
+    .ar-cta { position: fixed; right: var(--pad); bottom: var(--pad); z-index: 50; }
     .btn { background:#fff; color:#000; border:none; border-radius: 10px; padding: 10px 16px; font-weight:600; box-shadow: var(--shadow); cursor:pointer; }
-    .loader { position: fixed; inset:0; display:grid; place-items:center; background: rgba(0,0,0,.85); z-index: 20; }
+    .loader { position: fixed; inset:0; display:grid; place-items:center; background: rgba(0,0,0,.85); z-index: 100; }
+    .loader[hidden] { display: none !important; pointer-events: none !important; }
     .loader-inner { text-align:center; border:1px solid rgba(255,255,255,.2); border-radius:12px; padding: 16px 20px; background: rgba(0,0,0,.6); }
     .muted { color: var(--muted); font-size: .9rem }
   </style>
@@ -74,8 +75,11 @@
 
     // Show loader until first load
     loader.hidden = false;
-    mv.addEventListener('load', () => loader.hidden = true);
-    mv.addEventListener('error', () => loader.hidden = true);
+    const hideLoader = () => { if (!loader.hidden) loader.hidden = true; };
+    mv.addEventListener('load', hideLoader, { once: true });
+    mv.addEventListener('error', hideLoader, { once: true });
+    // Fallback: ensure loader never blocks UI if events misfire
+    setTimeout(hideLoader, 6000);
 
     // Basic scaling for preview
     scale.addEventListener('input', (e) => {
