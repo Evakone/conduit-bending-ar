@@ -91,14 +91,21 @@
     // Explicit AR button (helps some browsers)
     document.getElementById('enterAR').addEventListener('click', () => mv.activateAR());
 
-    // Log available animations and auto‑sequence if more than one
+    // Ensure animations start reliably on load (even with a single clip)
     mv.addEventListener('load', () => {
-      const names = mv.availableAnimations || [];
-      if (names.length > 1) {
-        let i = 0; const next = () => { i = (i + 1) % names.length; mv.animationName = names[i]; mv.animationLoop = 'once'; mv.play(); };
-        mv.addEventListener('finished', next);
-        mv.animationLoop = 'once'; mv.animationName = names[0]; mv.play();
-      }
+      try {
+        const names = mv.availableAnimations || [];
+        if (names.length) {
+          mv.animationName = names[0];
+          mv.animationLoop = 'repeat';
+          mv.play();
+          // If multiple clips exist, sequence through them
+          if (names.length > 1) {
+            let i = 0; const next = () => { i = (i + 1) % names.length; mv.animationName = names[i]; mv.animationLoop = 'once'; mv.play(); };
+            mv.addEventListener('finished', next);
+          }
+        }
+      } catch (e) { console.warn('Animation start failed:', e); }
     });
 
     // Preview interactions: one‑finger drag to nudge placement, two‑finger pinch to scale model
