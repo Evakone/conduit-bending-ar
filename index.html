@@ -46,6 +46,11 @@
       autoplay animation-name="Animation" animation-crossfade-duration="250"
       environment-image="neutral" xr-environment>
 
+      <!-- Hotspot aligned to banner (initial guess; tweak via ?hx=&hy=&hz=) -->
+      <button id="hotspotBanner" slot="hotspot-banner" class="btn"
+        data-position="0 -0.0013 0.964" data-normal="0 0 -1" data-visibility-attribute="visible"
+        style="padding:6px 10px; font-size:.8rem;">Tap to Learn More</button>
+
       <button slot="ar-button" class="btn">👁️ View in AR</button>
     </model-viewer>
 
@@ -96,6 +101,21 @@
     document.getElementById('visitSite').addEventListener('click', () => {
       window.open('https://lagreecorestrength.com/', '_blank', 'noopener');
     });
+
+    // Hotspot: open site; allow quick tuning via query (?hx=&hy=&hz= meters)
+    const hotspot = document.getElementById('hotspotBanner');
+    hotspot.addEventListener('click', () => window.open('https://lagreecorestrength.com/', '_blank', 'noopener'));
+    try {
+      const p = new URLSearchParams(location.search);
+      const hx = parseFloat(p.get('hx')); const hy = parseFloat(p.get('hy')); const hz = parseFloat(p.get('hz'));
+      if (!isNaN(hx) || !isNaN(hy) || !isNaN(hz)) {
+        const base = hotspot.dataset.position.split(' ').map(Number);
+        const nx = !isNaN(hx) ? hx : base[0];
+        const ny = !isNaN(hy) ? hy : base[1];
+        const nz = !isNaN(hz) ? hz : base[2];
+        hotspot.dataset.position = ;
+      }
+    } catch {}
 
     // Ensure animations start reliably on load (even with a single clip)
     mv.addEventListener('load', () => {
