@@ -24,7 +24,7 @@
     label { font-size: .85rem; color: var(--muted); }
     input[type="range"] { width: 220px; height: 6px; background: rgba(255,255,255,.18); border-radius:999px; -webkit-appearance: none; appearance: none; }
     input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; }
-    .ar-cta { position: fixed; right: var(--pad); bottom: var(--pad); z-index: 50; }
+    .ar-cta { position: fixed; right: var(--pad); bottom: var(--pad); z-index: 1000; pointer-events: auto; }
     .btn { background:#fff; color:#000; border:none; border-radius: 10px; padding: 10px 16px; font-weight:600; box-shadow: var(--shadow); cursor:pointer; }
     .loader { position: fixed; inset:0; display:grid; place-items:center; background: rgba(0,0,0,.85); z-index: 100; }
     .loader[hidden] { display: none !important; pointer-events: none !important; }
@@ -99,12 +99,18 @@
     // Explicit AR button (helps some browsers)
     document.getElementById('enterAR').addEventListener('click', () => mv.activateAR());
     document.getElementById('visitSite').addEventListener('click', () => {
-      window.open('https://lagreecorestrength.com/', '_blank', 'noopener');
+      const url = 'https://lagreecorestrength.com/';
+      const w = window.open(url, '_blank', 'noopener');
+      if (!w) location.href = url; // fallback if popup blocked
     });
 
     // Hotspot: open site; allow quick tuning via query (?hx=&hy=&hz= meters)
     const hotspot = document.getElementById('hotspotBanner');
-    hotspot.addEventListener('click', () => window.open('https://lagreecorestrength.com/', '_blank', 'noopener'));
+    hotspot.addEventListener('click', () => {
+      const url = 'https://lagreecorestrength.com/';
+      const w = window.open(url, '_blank', 'noopener');
+      if (!w) location.href = url;
+    });
     try {
       const p = new URLSearchParams(location.search);
       const units = (p.get('units') || '').toLowerCase(); // 'in' for inches, default meters
@@ -123,10 +129,27 @@
         const nx = !Number.isNaN(fx) ? fx : base[0];
         const ny = !Number.isNaN(fy) ? fy : base[1];
         const nz = !Number.isNaN(fz) ? fz : base[2];
-        hotspot.dataset.position = ;
+        hotspot.dataset.position = `${nx} ${ny} ${nz}`;
         console.log('[hotspot] position set to', hotspot.dataset.position, 'units:', units === 'in' ? 'inches' : 'meters');
       }
     } catch (e) { console.warn('Hotspot param parsing failed', e); }
+
+    // Keep hotspot on the side facing the camera
+    function updateHotspotSide() {
+      try {
+        const orbit = mv.getCameraOrbit(); // {theta, phi, radius}
+        const theta = orbit.theta; // degrees; 0 = +Z (front)
+        const front = Math.cos(theta * Math.PI/180) >= 0; // facing front
+        const pos = hotspot.dataset.position.split(' ').map(Number);
+        // Assume Z axis depth; flip sign based on camera side
+        const z = Math.abs(pos[2]) * (front ? 1 : -1);
+        const normalZ = front ? -1 : 1;
+        hotspot.dataset.position = `${pos[0]} ${pos[1]} ${z.toFixed(3)}`;
+        hotspot.dataset.normal = `0 0 ${normalZ}`;
+      } catch {}
+    }
+    mv.addEventListener('camera-change', updateHotspotSide);
+    mv.addEventListener('load', updateHotspotSide);
 
     // Ensure animations start reliably on load (even with a single clip)
     mv.addEventListener('load', () => {
