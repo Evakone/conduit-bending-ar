@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lagree AR — Street Sign (WebXR)</title>
+
+  <!-- Model Viewer (single engine) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer@^3.4.0/dist/model-viewer.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #000; --fg: #fff; --muted: #bfc7cc; --glass: rgba(0,0,0,.75);
+      --pad: 16px; --gap: 12px; --rad: 12px; --shadow: 0 10px 24px rgba(0,0,0,.35);
+      --font: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); }
+    .app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    header { position: fixed; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; justify-content:center; padding: 10px var(--pad); background: rgba(0,0,0,.6); backdrop-filter: blur(8px); }
+    header .title { font-weight: 600; font-size: 0.95rem; }
+    model-viewer { width: 100%; height: 100%; display: block; background: var(--bg); --poster-color: transparent; }
+    .panel { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--glass); border:1px solid rgba(255,255,255,.18); border-radius: var(--rad); padding: var(--pad); text-align:center; z-index: 10; }
+    .row { display:flex; align-items:center; gap: var(--gap); justify-content:center; }
+    label { font-size: .85rem; color: var(--muted); }
+    input[type="range"] { width: 220px; height: 6px; background: rgba(255,255,255,.18); border-radius:999px; -webkit-appearance: none; appearance: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; }
+    .ar-cta { position: fixed; right: var(--pad); bottom: var(--pad); z-index: 10; }
+    .btn { background:#fff; color:#000; border:none; border-radius: 10px; padding: 10px 16px; font-weight:600; box-shadow: var(--shadow); cursor:pointer; }
+    .loader { position: fixed; inset:0; display:grid; place-items:center; background: rgba(0,0,0,.85); z-index: 20; }
+    .loader-inner { text-align:center; border:1px solid rgba(255,255,255,.2); border-radius:12px; padding: 16px 20px; background: rgba(0,0,0,.6); }
+    .muted { color: var(--muted); font-size: .9rem }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header><div class="title">Lagree AR — Street Sign (WebXR)</div></header>
+
+    <!-- Single model-viewer instance: preview + AR -->
+    <model-viewer id="mv"
+      src="./AR-Sandwich-board-v2.lite.glb"
+      ios-src="./AR-Sandwich-board-v2.usdz"
+      alt="Lagree Street Sign"
+      ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto"
+      camera-controls
+      autoplay animation-name="Animation" animation-crossfade-duration="250"
+      environment-image="neutral" xr-environment>
+
+      <button slot="ar-button" class="btn">👁️ View in AR</button>
+    </model-viewer>
+
+    <!-- Size control (optional) -->
+    <div class="panel">
+      <div class="row">
+        <label>Scale: <span id="scaleVal">1.0x</span></label>
+        <input type="range" id="scale" min="0.2" max="2.5" step="0.1" value="1.0" />
+      </div>
+    </div>
+
+    <div class="ar-cta"><button class="btn" id="enterAR">Enter AR</button></div>
+
+    <div class="loader" id="loader" hidden>
+      <div class="loader-inner">
+        <div>Loading model…</div>
+        <div class="muted">Fast, minimal WebXR page</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const mv = document.getElementById('mv');
+    const scale = document.getElementById('scale');
+    const scaleVal = document.getElementById('scaleVal');
+    const loader = document.getElementById('loader');
+
+    // Show loader until first load
+    loader.hidden = false;
+    mv.addEventListener('load', () => loader.hidden = true);
+    mv.addEventListener('error', () => loader.hidden = true);
+
+    // Basic scaling for preview
+    scale.addEventListener('input', (e) => {
+      const s = parseFloat(e.target.value);
+      mv.scale = `${s} ${s} ${s}`;
+      scaleVal.textContent = `${s.toFixed(1)}x`;
+    });
+
+    // Explicit AR button (helps some browsers)
+    document.getElementById('enterAR').addEventListener('click', () => mv.activateAR());
+
+    // Log available animations and auto‑sequence if more than one
+    mv.addEventListener('load', () => {
+      const names = mv.availableAnimations || [];
+      if (names.length > 1) {
+        let i = 0; const next = () => { i = (i + 1) % names.length; mv.animationName = names[i]; mv.animationLoop = 'once'; mv.play(); };
+        mv.addEventListener('finished', next);
+        mv.animationLoop = 'once'; mv.animationName = names[0]; mv.play();
+      }
+    });
+  </script>
+</body>
+</html>
