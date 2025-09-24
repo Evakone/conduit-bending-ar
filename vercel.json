@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "ar-street-sign-webxr-lagree",
+  "name": "conduit-bending-ar",
   "rewrites": [
     { "source": "/", "destination": "/index.html" }
   ],
